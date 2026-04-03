@@ -41,6 +41,7 @@ export interface Capability {
   visibility: 'public' | 'restricted' | 'private';
   approval_mode: 'auto' | 'manual';
   multi_turn: boolean;
+  async: boolean;
   estimated_latency_ms?: number;
   call_count: number;
   success_count: number;

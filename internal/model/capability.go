@@ -84,9 +84,12 @@ type Capability struct {
 	// json:"multi_turn" 序列化为 JSON 时字段名为 "multi_turn"。
 	MultiTurn bool `gorm:"default:false;not null" json:"multi_turn"`
 
+	// Async 表示该 Skill 是否为异步执行。
+	// 异步 Skill 调用时 /invoke 立即返回 task_id，Agent 在后台处理，
+	// 调用方通过任务看板或 SSE 事件获取结果。
+	Async bool `gorm:"default:false;not null" json:"async"`
+
 	// EstimatedLatencyMs 是该能力预估的响应延迟（毫秒），供调用方参考。
-	// 使用指针类型以支持 NULL 值（未设置预估延迟时为 nil）。
-	// json:"estimated_latency_ms,omitempty" 序列化为 JSON 时字段名为 "estimated_latency_ms"，为空时省略。
 	EstimatedLatencyMs *uint `json:"estimated_latency_ms,omitempty"`
 
 	// CallCount 是该能力被调用的总次数，由平台在每次调用完成后自增。

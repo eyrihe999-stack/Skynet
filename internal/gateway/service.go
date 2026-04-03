@@ -170,41 +170,75 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 		return nil, fmt.Errorf("agent '%s' is not online", req.TargetAgent)
 	}
 
-	taskID := uuid.New().String()
+	// 检查 Skill 是否声明为异步
+	isAsync := s.isAsyncSkill(req.TargetAgent, req.Skill)
 
-	// 创建调用记录，初始状态为 "submitted"
+	taskID := uuid.New().String()
+	mode := "sync"
+	if isAsync {
+		mode = "async"
+	}
+
+	// 创建调用记录
 	inv := &model.Invocation{
 		TaskID:        taskID,
 		CallerAgentID: req.Caller.AgentID,
 		TargetAgentID: req.TargetAgent,
 		SkillName:     req.Skill,
 		Status:        "submitted",
-		Mode:          "sync",
+		Mode:          mode,
 	}
 	if req.Caller.UserID > 0 {
 		inv.CallerUserID = &req.Caller.UserID
 	}
 	s.invRepo.Create(inv)
 
-	// 确定超时时间，若未指定或非法则使用默认值 30 秒
+	// 确定超时时间
 	timeout := time.Duration(req.TimeoutMs) * time.Millisecond
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
+	if isAsync && timeout < 10*time.Minute {
+		timeout = 10 * time.Minute // 异步任务默认 10 分钟超时
+	}
 
-	// 构造调用载荷，通过 WebSocket 隧道发送 invoke 消息
 	payload := protocol.InvokePayload{
 		Skill:     req.Skill,
 		Input:     req.Input,
 		Caller:    req.Caller,
-		TimeoutMs: req.TimeoutMs,
+		TimeoutMs: int(timeout.Milliseconds()),
 		CallChain: req.CallChain,
 	}
 
-	// 标记为 working 并通知前端（让任务看板能看到进行中的任务）
+	// 标记为 working 并通知前端
 	s.invRepo.UpdateStatus(taskID, "working", nil, "")
 	s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "working", 0)
 
+	// ── 异步 Skill：立即返回 task_id，后台执行 ──
+	if isAsync {
+		go s.executeInvokeAsync(taskID, req, transport, payload, timeout)
+		logger.Infof("Async invoke %s.%s dispatched (task=%s)", req.TargetAgent, req.Skill, taskID)
+		return &InvokeResponse{
+			TaskID: taskID,
+			Status: "working",
+		}, nil
+	}
+
+	// ── 同步 Skill：阻塞等待结果 ──
+	return s.executeInvokeSync(taskID, req, transport, payload, timeout)
+}
+
+// isAsyncSkill 检查目标 Skill 是否声明为异步。
+func (s *Service) isAsyncSkill(agentID, skillName string) bool {
+	cap, err := s.capRepo.FindByAgentAndName(agentID, skillName)
+	if err != nil {
+		return false
+	}
+	return cap.Async
+}
+
+// executeInvokeSync 同步执行调用并返回结果。
+func (s *Service) executeInvokeSync(taskID string, req InvokeRequest, transport AgentTransport, payload protocol.InvokePayload, timeout time.Duration) (*InvokeResponse, error) {
 	startTime := time.Now()
 	requestID, invokeResult, err := transport.SendInvoke(payload, timeout)
 	latencyMs := uint(time.Since(startTime).Milliseconds())
@@ -243,7 +277,7 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 		}, nil
 	}
 
-	// 单轮完成：原有逻辑
+	// 单轮完成
 	result := invokeResult.Result
 	if result.Status == "completed" {
 		s.invRepo.UpdateStatus(taskID, "completed", &latencyMs, "")
@@ -254,8 +288,6 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 	}
 
 	logger.Infof("Invoke %s.%s completed in %dms (status=%s)", req.TargetAgent, req.Skill, latencyMs, result.Status)
-
-	// 发布任务状态变更事件
 	s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, result.Status, latencyMs)
 
 	return &InvokeResponse{
@@ -264,6 +296,33 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 		Output: result.Output,
 		Error:  result.Error,
 	}, nil
+}
+
+// executeInvokeAsync 在后台 goroutine 中执行调用，完成后更新 DB 并推送 SSE 事件。
+func (s *Service) executeInvokeAsync(taskID string, req InvokeRequest, transport AgentTransport, payload protocol.InvokePayload, timeout time.Duration) {
+	startTime := time.Now()
+	_, invokeResult, err := transport.SendInvoke(payload, timeout)
+	latencyMs := uint(time.Since(startTime).Milliseconds())
+
+	if err != nil {
+		s.invRepo.UpdateStatus(taskID, "failed", &latencyMs, err.Error())
+		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, false)
+		s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "failed", latencyMs)
+		logger.Errorf("Async invoke %s.%s failed (task=%s): %v", req.TargetAgent, req.Skill, taskID, err)
+		return
+	}
+
+	result := invokeResult.Result
+	if result.Status == "completed" {
+		s.invRepo.UpdateStatus(taskID, "completed", &latencyMs, "")
+		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, true)
+	} else {
+		s.invRepo.UpdateStatus(taskID, "failed", &latencyMs, result.Error)
+		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, false)
+	}
+
+	logger.Infof("Async invoke %s.%s completed in %dms (status=%s, task=%s)", req.TargetAgent, req.Skill, latencyMs, result.Status, taskID)
+	s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, result.Status, latencyMs)
 }
 
 // checkPermission 校验调用方是否有权限访问目标 Skill。

@@ -59,6 +59,7 @@ type CapabilityDef struct {
 	Visibility         string          `json:"visibility"`
 	ApprovalMode       string          `json:"approval_mode"`
 	MultiTurn          bool            `json:"multi_turn"`
+	Async              bool            `json:"async,omitempty"`
 	EstimatedLatencyMs uint            `json:"estimated_latency_ms,omitempty"`
 }
 

@@ -192,3 +192,4 @@ func sendError(ws *websocket.Conn, errMsg string) {
 	msg, _ := protocol.NewMessage(protocol.TypeError, "", map[string]string{"error": errMsg})
 	ws.WriteJSON(msg)
 }
+

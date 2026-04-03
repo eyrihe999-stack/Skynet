@@ -210,6 +210,7 @@ type registerCapDef struct {
 	OutputSchema       json.RawMessage `json:"output_schema"`
 	Visibility         string          `json:"visibility"`
 	ApprovalMode       string          `json:"approval_mode"`
+	Async              bool            `json:"async"`
 	EstimatedLatencyMs uint            `json:"estimated_latency_ms"`
 }
 
@@ -252,6 +253,7 @@ func (h *RegistryHandler) RegisterAgent(c *gin.Context) {
 			OutputSchema:       cap.OutputSchema,
 			Visibility:         visibility,
 			ApprovalMode:       approvalMode,
+			Async:              cap.Async,
 			EstimatedLatencyMs: cap.EstimatedLatencyMs,
 		}
 	}

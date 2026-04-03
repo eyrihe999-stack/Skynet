@@ -114,7 +114,7 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64, endpoin
 	// 将协议层的能力声明转换为数据模型，并批量 Upsert 到数据库
 	caps := make([]model.Capability, len(card.Capabilities))
 	for i, c := range card.Capabilities {
-		caps[i] = model.Capability{
+		cap := model.Capability{
 			AgentID:            card.AgentID,
 			Name:               c.Name,
 			DisplayName:        c.DisplayName,
@@ -128,6 +128,8 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64, endpoin
 			MultiTurn:          c.MultiTurn,
 			EstimatedLatencyMs: &c.EstimatedLatencyMs,
 		}
+		cap.Async = c.Async
+		caps[i] = cap
 	}
 
 	if err := s.capRepo.BulkUpsert(card.AgentID, caps); err != nil {
