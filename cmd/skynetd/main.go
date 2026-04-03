@@ -123,7 +123,14 @@ func main() {
 		CallbackHandler:   handler.NewCallbackHandler(callbackMgr),
 	})
 
-	// 8. Start heartbeat monitor
+	// 8. Cleanup stale tasks from previous run
+	if count, err := invRepo.CleanupStale(); err != nil {
+		logger.Errorf("Failed to cleanup stale invocations: %v", err)
+	} else if count > 0 {
+		logger.Infof("Cleaned up %d stale invocations from previous run", count)
+	}
+
+	// 9. Start heartbeat monitor
 	stopHeartbeat := make(chan struct{})
 	go registrySvc.StartHeartbeatMonitor(stopHeartbeat)
 	rateLimiter.StartCleanup(5*time.Minute, stopHeartbeat)

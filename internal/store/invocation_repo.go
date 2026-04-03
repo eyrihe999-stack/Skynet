@@ -89,6 +89,18 @@ func (r *InvocationRepo) FindByTaskID(taskID string) (*model.Invocation, error) 
 	return &inv, nil
 }
 
+// CleanupStale 将所有 submitted/working 状态的任务标记为 failed。
+// 在 Platform 启动时调用，清理上次进程被杀时遗留的孤儿任务。
+func (r *InvocationRepo) CleanupStale() (int64, error) {
+	result := r.db.Model(&model.Invocation{}).
+		Where("status IN ?", []string{"submitted", "working"}).
+		Updates(map[string]any{
+			"status":        "failed",
+			"error_message": "platform restarted, task aborted",
+		})
+	return result.RowsAffected, result.Error
+}
+
 // InvocationFilter 定义了查询调用记录列表时的过滤和分页条件。
 // 该结构体被 InvocationRepo.List 方法使用，支持按调用方、被调用方和发起用户进行筛选。
 //
