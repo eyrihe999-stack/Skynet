@@ -201,6 +201,10 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 		CallChain: req.CallChain,
 	}
 
+	// 标记为 working 并通知前端（让任务看板能看到进行中的任务）
+	s.invRepo.UpdateStatus(taskID, "working", nil, "")
+	s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "working", 0)
+
 	startTime := time.Now()
 	requestID, invokeResult, err := transport.SendInvoke(payload, timeout)
 	latencyMs := uint(time.Since(startTime).Milliseconds())
@@ -208,6 +212,7 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 	if err != nil {
 		s.invRepo.UpdateStatus(taskID, "failed", &latencyMs, err.Error())
 		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, false)
+		s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "failed", latencyMs)
 		return nil, err
 	}
 
