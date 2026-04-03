@@ -300,6 +300,14 @@ func (s *Service) executeInvokeSync(taskID string, req InvokeRequest, transport 
 
 // executeInvokeAsync 在后台 goroutine 中执行调用，完成后更新 DB 并推送 SSE 事件。
 func (s *Service) executeInvokeAsync(taskID string, req InvokeRequest, transport AgentTransport, payload protocol.InvokePayload, timeout time.Duration) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("Async invoke panic (task=%s): %v", taskID, r)
+			s.invRepo.UpdateStatus(taskID, "failed", nil, fmt.Sprintf("internal panic: %v", r))
+			s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "failed", 0)
+		}
+	}()
+
 	startTime := time.Now()
 	_, invokeResult, err := transport.SendInvoke(payload, timeout)
 	latencyMs := uint(time.Since(startTime).Milliseconds())
@@ -309,6 +317,15 @@ func (s *Service) executeInvokeAsync(taskID string, req InvokeRequest, transport
 		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, false)
 		s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "failed", latencyMs)
 		logger.Errorf("Async invoke %s.%s failed (task=%s): %v", req.TargetAgent, req.Skill, taskID, err)
+		return
+	}
+
+	// Agent 返回了多轮对话追问（异步模式暂不支持多轮，当作完成处理）
+	if invokeResult.Result == nil {
+		s.invRepo.UpdateStatus(taskID, "failed", &latencyMs, "async skill returned unexpected response (need_input not supported in async mode)")
+		s.capRepo.IncrementCallCount(req.TargetAgent, req.Skill, latencyMs, false)
+		s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, "failed", latencyMs)
+		logger.Warnf("Async invoke %s.%s returned non-result response (task=%s)", req.TargetAgent, req.Skill, taskID)
 		return
 	}
 
