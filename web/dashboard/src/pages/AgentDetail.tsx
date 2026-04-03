@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Descriptions, Tag, Table, Button, Input, Typography, message, Space, Modal, Divider } from 'antd';
 import { PlayCircleOutlined, InfoCircleOutlined, CheckCircleFilled, CloseCircleFilled, QuestionCircleFilled } from '@ant-design/icons';
+import Markdown from 'react-markdown';
 import { api } from '../api/client';
 import type { Agent, Capability, InvokeResponse } from '../types';
 
@@ -248,9 +249,31 @@ export default function AgentDetail() {
         {result?.status === 'completed' && (
           <div>
             <Text type="secondary">Task ID: {result.task_id}</Text>
-            <pre style={{ background: '#f5f5f5', padding: 16, borderRadius: 6, marginTop: 12, fontSize: 13, maxHeight: 400, overflow: 'auto' }}>
-              {JSON.stringify(result.output, null, 2)}
-            </pre>
+            <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 6, marginTop: 12, maxHeight: 500, overflow: 'auto' }}>
+              {(() => {
+                // 检查 output 中是否有包含 Markdown 的字符串字段
+                const output = result.output;
+                if (!output || typeof output !== 'object') {
+                  return <pre style={{ margin: 0, fontSize: 13 }}>{JSON.stringify(output, null, 2)}</pre>;
+                }
+                const values = Object.values(output as Record<string, any>);
+                const hasMarkdown = values.some((v: any) => typeof v === 'string' && (v.includes('|') || v.includes('#') || v.includes('**') || v.includes('\n')));
+                if (hasMarkdown) {
+                  // 渲染每个字段，字符串用 Markdown，其他用 JSON
+                  return Object.entries(output as Record<string, any>).map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 12 }}>
+                      <Text strong style={{ fontSize: 13 }}>{k}：</Text>
+                      {typeof v === 'string' ? (
+                        <div className="markdown-output"><Markdown>{v}</Markdown></div>
+                      ) : (
+                        <pre style={{ margin: '4px 0 0', fontSize: 13 }}>{JSON.stringify(v, null, 2)}</pre>
+                      )}
+                    </div>
+                  ));
+                }
+                return <pre style={{ margin: 0, fontSize: 13 }}>{JSON.stringify(output, null, 2)}</pre>;
+              })()}
+            </div>
           </div>
         )}
         {result?.status === 'failed' && (

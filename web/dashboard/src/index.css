@@ -6,3 +6,26 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.markdown-output table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.markdown-output th,
+.markdown-output td {
+  border: 1px solid #d9d9d9;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.markdown-output th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.markdown-output p {
+  margin: 4px 0;
+}
