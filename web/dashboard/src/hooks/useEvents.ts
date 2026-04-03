@@ -28,6 +28,7 @@ export function useEvents(onEvent: EventHandler) {
     source.addEventListener('agent_online', handleMessage('agent_online'));
     source.addEventListener('agent_offline', handleMessage('agent_offline'));
     source.addEventListener('invoke_completed', handleMessage('invoke_completed'));
+    source.addEventListener('invoke_status', handleMessage('invoke_status'));
 
     source.onerror = () => {
       // SSE 会自动重连，不需要手动处理

@@ -65,6 +65,7 @@ type Service struct {
 	approvalRepo *store.ApprovalRepo
 	taskSessions *TaskSessionManager
 	taskMsgRepo  *store.TaskMessageRepo
+	eventBus     *EventBus
 }
 
 // NewService 创建并返回一个新的调用网关服务实例。
@@ -77,7 +78,7 @@ type Service struct {
 //
 // 返回值：
 //   - *Service：初始化完成的网关服务实例
-func NewService(connMgr *ConnectionManager, invRepo *store.InvocationRepo, capRepo *store.CapabilityRepo, agentRepo *store.AgentRepo, permRepo *store.PermissionRepo, rateLimiter *RateLimiter, approvalRepo *store.ApprovalRepo, taskSessions *TaskSessionManager, taskMsgRepo *store.TaskMessageRepo) *Service {
+func NewService(connMgr *ConnectionManager, invRepo *store.InvocationRepo, capRepo *store.CapabilityRepo, agentRepo *store.AgentRepo, permRepo *store.PermissionRepo, rateLimiter *RateLimiter, approvalRepo *store.ApprovalRepo, taskSessions *TaskSessionManager, taskMsgRepo *store.TaskMessageRepo, eventBus *EventBus) *Service {
 	return &Service{
 		connMgr:      connMgr,
 		invRepo:      invRepo,
@@ -88,6 +89,7 @@ func NewService(connMgr *ConnectionManager, invRepo *store.InvocationRepo, capRe
 		approvalRepo: approvalRepo,
 		taskSessions: taskSessions,
 		taskMsgRepo:  taskMsgRepo,
+		eventBus:     eventBus,
 	}
 }
 
@@ -247,6 +249,9 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 	}
 
 	logger.Infof("Invoke %s.%s completed in %dms (status=%s)", req.TargetAgent, req.Skill, latencyMs, result.Status)
+
+	// 发布任务状态变更事件
+	s.publishInvokeEvent(taskID, req.TargetAgent, req.Skill, result.Status, latencyMs)
 
 	return &InvokeResponse{
 		TaskID: taskID,
@@ -523,12 +528,27 @@ func (s *Service) ReplyToTask(taskID string, replyInput json.RawMessage, callerU
 		s.capRepo.IncrementCallCount(session.TargetAgent, session.Skill, latencyMs, false)
 	}
 
+	s.publishInvokeEvent(taskID, session.TargetAgent, session.Skill, result.Status, latencyMs)
+
 	return &InvokeResponse{
 		TaskID: taskID,
 		Status: result.Status,
 		Output: result.Output,
 		Error:  result.Error,
 	}, nil
+}
+
+// publishInvokeEvent 发布调用状态变更 SSE 事件。
+func (s *Service) publishInvokeEvent(taskID, targetAgent, skill, status string, latencyMs uint) {
+	if s.eventBus != nil {
+		s.eventBus.PublishJSON("invoke_status", map[string]any{
+			"task_id":      taskID,
+			"target_agent": targetAgent,
+			"skill":        skill,
+			"status":       status,
+			"latency_ms":   latencyMs,
+		})
+	}
 }
 
 // mergeJSON 将两个 JSON 对象合并，reply 中的字段覆盖 original 中的同名字段。

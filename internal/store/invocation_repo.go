@@ -102,6 +102,7 @@ type InvocationFilter struct {
 	CallerAgentID string
 	TargetAgentID string
 	CallerUserID  *uint64
+	Status        string // 按状态过滤：submitted, working, completed, failed 等
 	Page          int
 	PageSize      int
 }
@@ -128,6 +129,9 @@ func (r *InvocationRepo) List(filter InvocationFilter) ([]model.Invocation, int6
 	}
 	if filter.CallerUserID != nil {
 		query = query.Where("caller_user_id = ?", *filter.CallerUserID)
+	}
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
 	}
 
 	var total int64

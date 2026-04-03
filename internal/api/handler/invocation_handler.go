@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
 	"github.com/eyrihe999-stack/Skynet/internal/store"
 	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
@@ -51,6 +52,7 @@ func (h *InvocationHandler) ListInvocations(c *gin.Context) {
 	filter := store.InvocationFilter{
 		CallerAgentID: c.Query("caller_agent_id"),
 		TargetAgentID: c.Query("target_agent_id"),
+		Status:        c.Query("status"),
 		Page:          page,
 		PageSize:      pageSize,
 	}
@@ -59,6 +61,14 @@ func (h *InvocationHandler) ListInvocations(c *gin.Context) {
 		uid, err := strconv.ParseUint(v, 10, 64)
 		if err == nil {
 			filter.CallerUserID = &uid
+		}
+	}
+
+	// mine=true: 仅查询当前用户发起的调用
+	if c.Query("mine") == "true" {
+		user := authz.GetCurrentUser(c)
+		if user != nil {
+			filter.CallerUserID = &user.ID
 		}
 	}
 

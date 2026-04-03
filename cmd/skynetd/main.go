@@ -90,7 +90,7 @@ func main() {
 	eventBus := gateway.NewEventBus()
 	rateLimiter := gateway.NewRateLimiter()
 	taskSessions := gateway.NewTaskSessionManager()
-	gatewaySvc := gateway.NewService(connMgr, invRepo, capRepo, agentRepo, permRepo, rateLimiter, approvalRepo, taskSessions, taskMsgRepo)
+	gatewaySvc := gateway.NewService(connMgr, invRepo, capRepo, agentRepo, permRepo, rateLimiter, approvalRepo, taskSessions, taskMsgRepo, eventBus)
 
 	// 6. Create handlers
 	authHandler := authz.NewHandler(authSvc)
