@@ -69,8 +69,8 @@ func (r *CapabilityRepo) BulkUpsert(agentID string, caps []model.Capability) err
 				DoUpdates: clause.AssignmentColumns([]string{
 					"display_name", "description", "category", "tags",
 					"input_schema", "output_schema", "visibility",
-					"approval_mode", "multi_turn", "estimated_latency_ms",
-					"updated_at",
+					"approval_mode", "multi_turn", "async",
+					"estimated_latency_ms", "updated_at",
 				}),
 			}).Create(&caps[i]).Error; err != nil {
 				return err
