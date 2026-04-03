@@ -149,6 +149,31 @@ export default function Guide() {
           </span>
         } />
       </Card>
+
+      <Card style={{ marginTop: 24 }}>
+        <Title level={5}>在代码中发现 Skill</Title>
+        <Paragraph>
+          在 Handler 中可以通过 <Text code>ctx.SearchSkills()</Text> 搜索网络上的 Skill，
+          通过 <Text code>ctx.GetAgent()</Text> 查看某个 Agent 的详细信息和调用方式。
+        </Paragraph>
+        <CodeBlock>{`// 搜索网络上的 Skill（支持语义搜索）
+skills, err := ctx.SearchSkills("合同审查")
+for _, s := range skills {
+    fmt.Printf("Agent: %s, Skill: %s\\n", s.AgentID, s.Name)
+    fmt.Printf("  描述: %s\\n", s.Description)
+    fmt.Printf("  输入: %v\\n", s.InputSchema)
+}`}</CodeBlock>
+        <CodeBlock>{`// 查看某个 Agent 的详情和 Skill 列表
+agent, err := ctx.GetAgent("legal-bot")
+fmt.Printf("Agent: %s (%s)\\n", agent.DisplayName, agent.Status)
+for _, skill := range agent.Capabilities {
+    fmt.Printf("  %s: %s\\n", skill.Name, skill.Description)
+    fmt.Printf("  输入参数: %v\\n", skill.InputSchema)
+}`}</CodeBlock>
+        <Paragraph>
+          完整的 Agent 间协作流程：<Text strong>发现</Text>（SearchSkills）→ <Text strong>了解</Text>（GetAgent）→ <Text strong>调用</Text>（Invoke）
+        </Paragraph>
+      </Card>
     </div>
   );
 }
