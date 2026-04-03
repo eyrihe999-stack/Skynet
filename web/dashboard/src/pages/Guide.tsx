@@ -116,6 +116,39 @@ export default function Guide() {
           ]}
         />
       </Card>
+
+      <Card style={{ marginTop: 24 }}>
+        <Title level={5}>调用其他 Agent 的 Skill</Title>
+        <Paragraph>
+          在你的 Skill Handler 中，可以通过 <Text code>ctx.Invoke()</Text> 直接调用网络上其他 Agent 的 Skill，
+          实现 Agent 间协作。框架会自动处理认证和调用链追踪。
+        </Paragraph>
+        <CodeBlock>{`var Summarize = framework.Skill{
+    Name: "summarize",
+    Handler: func(ctx framework.Context, input framework.Input) (any, error) {
+        doc := input.String("doc")
+
+        // 调用另一个 Agent 的翻译 Skill
+        result, err := ctx.Invoke("translator-agent", "translate", map[string]any{
+            "text":        doc,
+            "target_lang": "en",
+        })
+        if err != nil {
+            return nil, err
+        }
+
+        // 使用翻译结果继续处理
+        translated := result.Output["text"]
+        return map[string]any{"summary": translated}, nil
+    },
+}`}</CodeBlock>
+        <Alert type="info" message="调用链保护" description={
+          <span>
+            平台自动追踪 Agent 间的调用链（call_chain），防止循环调用和过深嵌套（最大深度 3 层）。
+            例如 A 调 B 调 C 是允许的，但 A 调 B 调 A 会被拒绝。
+          </span>
+        } />
+      </Card>
     </div>
   );
 }

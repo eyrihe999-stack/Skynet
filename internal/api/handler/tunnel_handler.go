@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -133,8 +134,25 @@ func (h *TunnelHandler) HandleTunnel(c *gin.Context) {
 	// 发布 Agent 上线事件
 	h.eventBus.PublishJSON("agent_online", map[string]string{"agent_id": card.AgentID})
 
+	// 启动数据库心跳更新定时器，每 30 秒更新一次 last_heartbeat_at，
+	// 使心跳监控不会将活跃的 WebSocket 连接标记为 offline。
+	heartbeatDone := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				h.registrySvc.Heartbeat(card.AgentID)
+			case <-heartbeatDone:
+				return
+			}
+		}
+	}()
+
 	// 阻塞等待连接关闭（Agent 主动断开或网络异常）
 	<-agentConn.CloseCh()
+	close(heartbeatDone)
 
 	// Agent 断开后执行清理：从隧道管理器和注册中心中注销
 	h.tunnelMgr.Unregister(card.AgentID)
