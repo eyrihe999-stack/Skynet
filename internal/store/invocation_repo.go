@@ -89,11 +89,11 @@ func (r *InvocationRepo) FindByTaskID(taskID string) (*model.Invocation, error) 
 	return &inv, nil
 }
 
-// CleanupStale 将所有 submitted/working 状态的任务标记为 failed。
-// 在 Platform 启动时调用，清理上次进程被杀时遗留的孤儿任务。
-func (r *InvocationRepo) CleanupStale() (int64, error) {
+// CleanupStale 将 Platform 启动前遗留的 submitted/working 任��标记为 failed。
+// bootTime 是本次 Platform 的启动时间，只清理在此之前创建的任务，避免误杀刚提交的任务。
+func (r *InvocationRepo) CleanupStale(bootTime time.Time) (int64, error) {
 	result := r.db.Model(&model.Invocation{}).
-		Where("status IN ?", []string{"submitted", "working"}).
+		Where("status IN ? AND created_at < ?", []string{"submitted", "working"}, bootTime).
 		Updates(map[string]any{
 			"status":        "failed",
 			"error_message": "platform restarted, task aborted",

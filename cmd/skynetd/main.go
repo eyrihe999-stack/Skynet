@@ -123,8 +123,9 @@ func main() {
 		CallbackHandler:   handler.NewCallbackHandler(callbackMgr),
 	})
 
-	// 8. Cleanup stale tasks from previous run
-	if count, err := invRepo.CleanupStale(); err != nil {
+	// 8. Cleanup stale tasks from previous run (only those created before this boot)
+	bootTime := time.Now()
+	if count, err := invRepo.CleanupStale(bootTime); err != nil {
 		logger.Errorf("Failed to cleanup stale invocations: %v", err)
 	} else if count > 0 {
 		logger.Infof("Cleaned up %d stale invocations from previous run", count)
