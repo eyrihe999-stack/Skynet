@@ -116,5 +116,10 @@ func (h *InvokeHandler) Invoke(c *gin.Context) {
 		return
 	}
 
+	if result.Status == "working" {
+		c.JSON(202, gin.H{"code": 0, "message": "async task dispatched", "data": result})
+		return
+	}
+
 	response.Success(c, result)
 }
