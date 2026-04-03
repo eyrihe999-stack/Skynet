@@ -14,7 +14,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/eyrihe999-stack/Skynet/internal/model"
 	"github.com/eyrihe999-stack/Skynet-sdk/logger"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -95,22 +94,13 @@ func (s *Service) Register(email, password, displayName string) (*RegisterResult
 		return nil, ErrEmailExists
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
 	apiKey := generateAPIKey()
-	apiKeyHash, err := bcrypt.GenerateFromPassword([]byte(apiKey), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
 
 	user := model.User{
 		Email:        email,
 		DisplayName:  displayName,
-		PasswordHash: string(passwordHash),
-		APIKeyHash:   string(apiKeyHash),
+		PasswordHash: password,
+		APIKey:       apiKey,
 		Status:       "active",
 	}
 
@@ -153,7 +143,7 @@ func (s *Service) Login(email, password string) (*LoginResult, error) {
 		return nil, ErrUserNotFound
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	if user.PasswordHash != password {
 		return nil, ErrInvalidPassword
 	}
 
@@ -178,16 +168,11 @@ func (s *Service) Login(email, password string) (*LoginResult, error) {
 //   - *model.User: 匹配成功的用户模型指针。
 //   - error: 无匹配用户时返回 ErrInvalidAPIKey。
 func (s *Service) ValidateAPIKey(apiKey string) (*model.User, error) {
-	var users []model.User
-	s.db.Where("status = 'active' AND api_key_hash IS NOT NULL AND api_key_hash != ''").Find(&users)
-
-	for _, user := range users {
-		if err := bcrypt.CompareHashAndPassword([]byte(user.APIKeyHash), []byte(apiKey)); err == nil {
-			return &user, nil
-		}
+	var user model.User
+	if err := s.db.Where("status = 'active' AND api_key_hash = ?", apiKey).First(&user).Error; err != nil {
+		return nil, ErrInvalidAPIKey
 	}
-
-	return nil, ErrInvalidAPIKey
+	return &user, nil
 }
 
 // ValidateJWT 验证客户端提供的 JWT 令牌是否合法，并返回对应的用户信息。
@@ -258,12 +243,8 @@ func (s *Service) generateJWT(userID uint64, email string) (string, error) {
 // 旧 Key 立即失效，返回新的明文 Key（仅此一次）。
 func (s *Service) RegenerateAPIKey(userID uint64) (string, error) {
 	apiKey := generateAPIKey()
-	apiKeyHash, err := bcrypt.GenerateFromPassword([]byte(apiKey), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
 	if err := s.db.Model(&model.User{}).Where("id = ?", userID).
-		Update("api_key_hash", string(apiKeyHash)).Error; err != nil {
+		Update("api_key_hash", apiKey).Error; err != nil {
 		return "", err
 	}
 	return apiKey, nil

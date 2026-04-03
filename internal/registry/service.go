@@ -14,7 +14,6 @@ import (
 	"github.com/eyrihe999-stack/Skynet/internal/store"
 	"github.com/eyrihe999-stack/Skynet-sdk/logger"
 	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Service 是注册中心的核心服务结构体，提供 Agent 注册、注销、心跳、发现和能力搜索等功能。
@@ -71,15 +70,11 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64) (agentS
 	var secretHash string
 
 	if existing == nil {
-		// 首次注册 — 生成 agent secret 并计算 bcrypt 哈希
+		// 首次注册 — 生成 agent secret，明文存储
 		agentSecret = generateAgentSecret()
-		hash, err := bcrypt.GenerateFromPassword([]byte(agentSecret), bcrypt.DefaultCost)
-		if err != nil {
-			return "", err
-		}
-		secretHash = string(hash)
+		secretHash = agentSecret
 	} else {
-		// 重复注册 — 复用已有的 secret hash
+		// 重复注册 — 复用已有的 secret
 		secretHash = existing.AgentSecretHash
 	}
 

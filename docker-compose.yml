@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: skynet-mysql
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: skynet123
       MYSQL_DATABASE: skynet
     ports:
       - "3307:3306"
@@ -24,15 +24,6 @@ services:
         condition: service_healthy
     ports:
       - "9090:9090"
-    environment:
-      DB_HOST: mysql
-      DB_PORT: "3306"
-      DB_USER: root
-      DB_PASSWORD: ""
-      DB_NAME: skynet
-      JWT_SECRET: skynet-dev-secret
-      LOG_LEVEL: debug
-      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
     restart: unless-stopped
 
   dashboard:

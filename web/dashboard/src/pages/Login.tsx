@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Button, Typography, message, Tabs, Alert, Modal } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, CopyOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Typography, message, Tabs } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { api, setToken } from '../api/client';
 
 const { Title } = Typography;
@@ -9,7 +9,6 @@ const { Title } = Typography;
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [apiKeyModal, setApiKeyModal] = useState<string | null>(null);
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -28,24 +27,16 @@ export default function Login() {
   const handleRegister = async (values: { email: string; password: string; display_name: string }) => {
     setLoading(true);
     try {
-      const resp = await api.register(values.email, values.password, values.display_name);
-      // 显示 API Key
-      if (resp.data.api_key) {
-        setApiKeyModal(resp.data.api_key);
-      } else {
-        message.success('注册成功！请登录');
-      }
+      await api.register(values.email, values.password, values.display_name);
+      // 注册成功后自动登录
+      const loginResp = await api.login(values.email, values.password);
+      setToken(loginResp.data.token);
+      message.success('注册成功');
+      navigate('/');
     } catch (err: any) {
       message.error(err.message || '注册失败');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const copyKey = () => {
-    if (apiKeyModal) {
-      navigator.clipboard.writeText(apiKeyModal);
-      message.success('已复制到剪贴板');
     }
   };
 
@@ -99,29 +90,6 @@ export default function Login() {
           ]}
         />
       </Card>
-
-      <Modal
-        title="注册成功 — 请保存你的 API Key"
-        open={!!apiKeyModal}
-        onOk={() => { setApiKeyModal(null); navigate('/login'); }}
-        onCancel={() => { setApiKeyModal(null); }}
-        okText="我已保存，去登录"
-        cancelButtonProps={{ style: { display: 'none' } }}
-        closable={false}
-        maskClosable={false}
-      >
-        <Alert
-          type="warning"
-          message="API Key 仅显示一次，关闭后无法再查看！"
-          style={{ marginBottom: 16 }}
-        />
-        <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 13 }}>
-          {apiKeyModal}
-        </div>
-        <Button type="link" icon={<CopyOutlined />} onClick={copyKey} style={{ marginTop: 8, padding: 0 }}>
-          复制 Key
-        </Button>
-      </Modal>
     </div>
   );
 }

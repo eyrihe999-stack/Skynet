@@ -43,10 +43,10 @@ type User struct {
 	// json:"-" 表示该字段在 JSON 序列化时始终忽略，避免泄露敏感信息。
 	PasswordHash string `gorm:"type:varchar(255)" json:"-"`
 
-	// APIKeyHash 存储用户 API Key 的哈希值，用于程序化 API 鉴权。
-	// gorm:"type:varchar(255)" 限制最大长度 255。
-	// json:"-" 表示该字段在 JSON 序列化时始终忽略，避免泄露敏感信息。
-	APIKeyHash string `gorm:"type:varchar(255)" json:"-"`
+	// APIKey 存储用户的 API Key 明文，用于程序化 API 鉴权。
+	// gorm:"column:api_key_hash;type:varchar(255)" 复用原有数据库列名。
+	// json:"api_key,omitempty" 序列化为 JSON 时字段名为 "api_key"。
+	APIKey string `gorm:"column:api_key_hash;type:varchar(255)" json:"api_key,omitempty"`
 
 	// Status 表示用户账户的当前状态。
 	// 取值范围：
