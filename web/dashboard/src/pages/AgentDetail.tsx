@@ -235,7 +235,7 @@ export default function AgentDetail() {
         open={resultModalOpen}
         onCancel={() => setResultModalOpen(false)}
         footer={<Button type="primary" onClick={() => setResultModalOpen(false)}>确定</Button>}
-        width={640}
+        width={720}
         title={
           result?.status === 'completed' ? (
             <Space><CheckCircleFilled style={{ color: '#52c41a' }} />调用成功</Space>
@@ -248,30 +248,33 @@ export default function AgentDetail() {
       >
         {result?.status === 'completed' && (
           <div>
-            <Text type="secondary">Task ID: {result.task_id}</Text>
-            <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 6, marginTop: 12, maxHeight: 500, overflow: 'auto' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Task ID: {result.task_id}</Text>
+            <div style={{ marginTop: 12, maxHeight: 500, overflow: 'auto' }}>
               {(() => {
-                // 检查 output 中是否有包含 Markdown 的字符串字段
                 const output = result.output;
                 if (!output || typeof output !== 'object') {
-                  return <pre style={{ margin: 0, fontSize: 13 }}>{JSON.stringify(output, null, 2)}</pre>;
+                  return <pre style={{ margin: 0, fontSize: 13, background: '#f5f5f5', padding: 16, borderRadius: 6 }}>{JSON.stringify(output, null, 2)}</pre>;
                 }
-                const values = Object.values(output as Record<string, any>);
-                const hasMarkdown = values.some((v: any) => typeof v === 'string' && (v.includes('|') || v.includes('#') || v.includes('**') || v.includes('\n')));
-                if (hasMarkdown) {
-                  // 渲染每个字段，字符串用 Markdown，其他用 JSON
-                  return Object.entries(output as Record<string, any>).map(([k, v]) => (
-                    <div key={k} style={{ marginBottom: 12 }}>
-                      <Text strong style={{ fontSize: 13 }}>{k}：</Text>
+                const entries = Object.entries(output as Record<string, any>);
+                // 如果只有一个字符串字段，直接全幅 Markdown 渲染
+                if (entries.length === 1 && typeof entries[0][1] === 'string') {
+                  return <div className="markdown-output"><Markdown>{entries[0][1]}</Markdown></div>;
+                }
+                // 多字段：逐个渲染
+                const hasRichContent = entries.some(([, v]) => typeof v === 'string' && (v.includes('|') || v.includes('#') || v.includes('**') || v.includes('\n')));
+                if (hasRichContent) {
+                  return entries.map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 16 }}>
+                      {entries.length > 1 && <Text strong>{k}</Text>}
                       {typeof v === 'string' ? (
                         <div className="markdown-output"><Markdown>{v}</Markdown></div>
                       ) : (
-                        <pre style={{ margin: '4px 0 0', fontSize: 13 }}>{JSON.stringify(v, null, 2)}</pre>
+                        <pre style={{ margin: '4px 0 0', fontSize: 13, background: '#f5f5f5', padding: 12, borderRadius: 6 }}>{JSON.stringify(v, null, 2)}</pre>
                       )}
                     </div>
                   ));
                 }
-                return <pre style={{ margin: 0, fontSize: 13 }}>{JSON.stringify(output, null, 2)}</pre>;
+                return <pre style={{ margin: 0, fontSize: 13, background: '#f5f5f5', padding: 16, borderRadius: 6 }}>{JSON.stringify(output, null, 2)}</pre>;
               })()}
             </div>
           </div>
