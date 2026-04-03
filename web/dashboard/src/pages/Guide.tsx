@@ -58,12 +58,12 @@ export default function Guide() {
           {
             key: 'websocket',
             label: <span><Tag color="green">任意语言</Tag>WebSocket 协议</span>,
-            children: <WebSocketGuide platformURL={platformURL} wsURL={wsURL} apiKey={apiKey} />,
+            children: <WebSocketGuide wsURL={wsURL} apiKey={apiKey} />,
           },
           {
             key: 'webhook',
             label: <span><Tag color="orange">Serverless</Tag>Webhook 模式</span>,
-            children: <WebhookGuide platformURL={platformURL} apiKey={apiKey} />,
+            children: <WebhookGuide platformURL={platformURL} />,
           },
         ]} />
       </Card>
@@ -209,7 +209,7 @@ function GoSDKGuide({ platformURL, apiKey, hasApiKey }: { platformURL: string; a
 }
 
 // ============ WebSocket 协议接入指南 ============
-function WebSocketGuide({ platformURL, wsURL, apiKey }: { platformURL: string; wsURL: string; apiKey: string }) {
+function WebSocketGuide({ wsURL, apiKey }: { wsURL: string; apiKey: string }) {
   return (
     <div>
       <Alert type="info" message="只要能建立 WebSocket 连接，任何语言都能接入。以下是完整的协议规范和示例。" style={{ marginBottom: 16 }} />
@@ -478,7 +478,7 @@ ws.on("message", (raw) => {
 }
 
 // ============ Webhook/Direct 模式接入指南 ============
-function WebhookGuide({ platformURL, apiKey }: { platformURL: string; apiKey: string }) {
+function WebhookGuide({ platformURL }: { platformURL: string }) {
   return (
     <div>
       <Alert type="info" message="Webhook 模式适合无法维持长连接的场景：Serverless 函数、Claude Code Skill、定时启动的服务等。Agent 只需提供一个 HTTP 端点，Platform 会主动调用。" style={{ marginBottom: 16 }} />
