@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Card, Descriptions, Tag, Table, Button, Input, Typography, message, Space, Modal, Divider } from 'antd';
 import { PlayCircleOutlined, InfoCircleOutlined, CheckCircleFilled, CloseCircleFilled, QuestionCircleFilled } from '@ant-design/icons';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { api } from '../api/client';
 import type { Agent, Capability, InvokeResponse } from '../types';
 
@@ -258,7 +259,7 @@ export default function AgentDetail() {
                 const entries = Object.entries(output as Record<string, any>);
                 // 如果只有一个字符串字段，直接全幅 Markdown 渲染
                 if (entries.length === 1 && typeof entries[0][1] === 'string') {
-                  return <div className="markdown-output"><Markdown>{entries[0][1]}</Markdown></div>;
+                  return <div className="markdown-output"><Markdown remarkPlugins={[remarkGfm]}>{entries[0][1]}</Markdown></div>;
                 }
                 // 多字段：逐个渲染
                 const hasRichContent = entries.some(([, v]) => typeof v === 'string' && (v.includes('|') || v.includes('#') || v.includes('**') || v.includes('\n')));
@@ -267,7 +268,7 @@ export default function AgentDetail() {
                     <div key={k} style={{ marginBottom: 16 }}>
                       {entries.length > 1 && <Text strong>{k}</Text>}
                       {typeof v === 'string' ? (
-                        <div className="markdown-output"><Markdown>{v}</Markdown></div>
+                        <div className="markdown-output"><Markdown remarkPlugins={[remarkGfm]}>{v}</Markdown></div>
                       ) : (
                         <pre style={{ margin: '4px 0 0', fontSize: 13, background: '#f5f5f5', padding: 12, borderRadius: 6 }}>{JSON.stringify(v, null, 2)}</pre>
                       )}
