@@ -1,6 +1,6 @@
 # Binaries
-skynetd
-skynet
+/skynetd
+/skynet
 *.exe
 *.exe~
 *.dll

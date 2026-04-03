@@ -63,7 +63,7 @@ func NewService(agentRepo *store.AgentRepo, capRepo *store.CapabilityRepo, embed
 // 返回值：
 //   - agentSecret: 首次注册时返回生成的 agent secret，重复注册时返回空字符串
 //   - err: 注册过程中的错误，包括数据库操作失败、密钥生成失败等
-func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64) (agentSecret string, err error) {
+func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64, endpointURL ...string) (agentSecret string, err error) {
 	existing, _ := s.agentRepo.FindByAgentID(card.AgentID)
 
 	now := time.Now()
@@ -85,6 +85,12 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64) (agentS
 		json.Unmarshal(b, &dataPolicy)
 	}
 
+	// 解析可选的 endpointURL 参数（direct/webhook 模式使用）
+	var epURL string
+	if len(endpointURL) > 0 {
+		epURL = endpointURL[0]
+	}
+
 	// 构建 Agent 数据模型并执行 Upsert 操作
 	agent := &model.Agent{
 		AgentID:          card.AgentID,
@@ -92,6 +98,7 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64) (agentS
 		DisplayName:      card.DisplayName,
 		Description:      card.Description,
 		ConnectionMode:   card.ConnectionMode,
+		EndpointURL:      epURL,
 		AgentSecretHash:  secretHash,
 		DataPolicy:       dataPolicy,
 		Status:           "online",
@@ -134,6 +141,15 @@ func (s *Service) RegisterAgent(card protocol.AgentCard, ownerID uint64) (agentS
 
 	logger.Infof("Agent registered: %s (%d capabilities)", card.AgentID, len(caps))
 	return agentSecret, nil
+}
+
+// GetAgentSecret 返回指定 Agent 的 secret（用于 webhook 签名等场景）。
+func (s *Service) GetAgentSecret(agentID string) (string, error) {
+	agent, err := s.agentRepo.FindByAgentID(agentID)
+	if err != nil {
+		return "", err
+	}
+	return agent.AgentSecretHash, nil
 }
 
 // UnregisterAgent 将指定 Agent 的状态设置为离线，实现逻辑注销。

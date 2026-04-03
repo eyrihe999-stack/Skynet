@@ -85,6 +85,9 @@ func SetupRouter(deps Deps) *gin.Engine {
 		authenticated := v1.Group("")
 		authenticated.Use(authz.AuthRequired(deps.AuthSvc))
 		{
+			// Webhook/Direct Agent 注册（REST）
+			authenticated.POST("/agents/register", deps.RegistryHandler.RegisterAgent)
+
 			// Agent 管理相关路由
 			authenticated.GET("/agents", deps.RegistryHandler.ListAgents)
 			authenticated.GET("/agents/:agent_id", deps.RegistryHandler.GetAgent)

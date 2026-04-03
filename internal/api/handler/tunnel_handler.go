@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 //   - authSvc: 认证授权服务，用于验证 Agent 携带的 API Key 是否有效。
 //   - eventBus: 事件总线，用于发布 Agent 上下线事件。
 type TunnelHandler struct {
-	tunnelMgr   *gateway.TunnelManager
+	connMgr     *gateway.ConnectionManager
 	registrySvc *registry.Service
 	authSvc     *authz.Service
 	eventBus    *gateway.EventBus
@@ -46,9 +46,9 @@ type TunnelHandler struct {
 //
 // 返回值：
 //   - *TunnelHandler: 初始化完成的隧道处理器实例。
-func NewTunnelHandler(tunnelMgr *gateway.TunnelManager, registrySvc *registry.Service, authSvc *authz.Service, eventBus *gateway.EventBus) *TunnelHandler {
+func NewTunnelHandler(connMgr *gateway.ConnectionManager, registrySvc *registry.Service, authSvc *authz.Service, eventBus *gateway.EventBus) *TunnelHandler {
 	return &TunnelHandler{
-		tunnelMgr:   tunnelMgr,
+		connMgr:     connMgr,
 		registrySvc: registrySvc,
 		authSvc:     authSvc,
 		eventBus:    eventBus,
@@ -129,7 +129,7 @@ func (h *TunnelHandler) HandleTunnel(c *gin.Context) {
 
 	// 创建 Agent 连接对象并注册到隧道管理器，使 Gateway 可通过隧道路由请求
 	agentConn := gateway.NewAgentConn(card.AgentID, ws)
-	h.tunnelMgr.Register(card.AgentID, agentConn)
+	h.connMgr.Register(card.AgentID, agentConn)
 
 	// 发布 Agent 上线事件
 	h.eventBus.PublishJSON("agent_online", map[string]string{"agent_id": card.AgentID})
@@ -155,7 +155,7 @@ func (h *TunnelHandler) HandleTunnel(c *gin.Context) {
 	close(heartbeatDone)
 
 	// Agent 断开后执行清理：从隧道管理器和注册中心中注销
-	h.tunnelMgr.Unregister(card.AgentID)
+	h.connMgr.Unregister(card.AgentID)
 	h.registrySvc.UnregisterAgent(card.AgentID)
 
 	// 发布 Agent 下线事件

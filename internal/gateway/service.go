@@ -56,7 +56,7 @@ var ErrApprovalRequired = errors.New("approval required")
 //   - capRepo：能力（技能）仓库，用于查询 Skill 元信息和更新调用统计
 //   - agentRepo：Agent 仓库，用于查询 Agent 的 Owner 信息（权限校验需要）
 type Service struct {
-	tunnelMgr    *TunnelManager
+	connMgr      *ConnectionManager
 	invRepo      *store.InvocationRepo
 	capRepo      *store.CapabilityRepo
 	agentRepo    *store.AgentRepo
@@ -77,9 +77,9 @@ type Service struct {
 //
 // 返回值：
 //   - *Service：初始化完成的网关服务实例
-func NewService(tunnelMgr *TunnelManager, invRepo *store.InvocationRepo, capRepo *store.CapabilityRepo, agentRepo *store.AgentRepo, permRepo *store.PermissionRepo, rateLimiter *RateLimiter, approvalRepo *store.ApprovalRepo, taskSessions *TaskSessionManager, taskMsgRepo *store.TaskMessageRepo) *Service {
+func NewService(connMgr *ConnectionManager, invRepo *store.InvocationRepo, capRepo *store.CapabilityRepo, agentRepo *store.AgentRepo, permRepo *store.PermissionRepo, rateLimiter *RateLimiter, approvalRepo *store.ApprovalRepo, taskSessions *TaskSessionManager, taskMsgRepo *store.TaskMessageRepo) *Service {
 	return &Service{
-		tunnelMgr:    tunnelMgr,
+		connMgr:      connMgr,
 		invRepo:      invRepo,
 		capRepo:      capRepo,
 		agentRepo:    agentRepo,
@@ -163,8 +163,8 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 	}
 
 	// 检查目标 Agent 是否在线
-	conn := s.tunnelMgr.GetConn(req.TargetAgent)
-	if conn == nil {
+	transport := s.connMgr.GetTransport(req.TargetAgent)
+	if transport == nil {
 		return nil, fmt.Errorf("agent '%s' is not online", req.TargetAgent)
 	}
 
@@ -200,7 +200,7 @@ func (s *Service) Invoke(req InvokeRequest) (*InvokeResponse, error) {
 	}
 
 	startTime := time.Now()
-	requestID, invokeResult, err := conn.SendInvoke(payload, timeout)
+	requestID, invokeResult, err := transport.SendInvoke(payload, timeout)
 	latencyMs := uint(time.Since(startTime).Milliseconds())
 
 	if err != nil {
@@ -460,8 +460,8 @@ func (s *Service) ReplyToTask(taskID string, replyInput json.RawMessage, callerU
 		return nil, fmt.Errorf("%w: not the original caller", ErrPermissionDenied)
 	}
 
-	conn := s.tunnelMgr.GetConn(session.TargetAgent)
-	if conn == nil {
+	transport := s.connMgr.GetTransport(session.TargetAgent)
+	if transport == nil {
 		s.taskSessions.Delete(taskID)
 		s.invRepo.UpdateStatus(taskID, "failed", nil, "agent disconnected")
 		return nil, fmt.Errorf("agent '%s' is not online", session.TargetAgent)
@@ -487,7 +487,7 @@ func (s *Service) ReplyToTask(taskID string, replyInput json.RawMessage, callerU
 		timeout = 30 * time.Second
 	}
 
-	invokeResult, err := conn.SendReply(session.RequestID, replyPayload, timeout)
+	invokeResult, err := transport.SendReply(session.RequestID, replyPayload, timeout)
 	if err != nil {
 		s.taskSessions.Delete(taskID)
 		s.invRepo.UpdateStatus(taskID, "failed", nil, err.Error())

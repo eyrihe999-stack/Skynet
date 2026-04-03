@@ -1,34 +1,32 @@
 package handler
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/eyrihe999-stack/Skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/gateway"
 	"github.com/eyrihe999-stack/Skynet/internal/registry"
 	"github.com/eyrihe999-stack/Skynet/internal/store"
 	"github.com/eyrihe999-stack/Skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
 )
 
 // RegistryHandler 是 Agent 注册中心的 HTTP 处理器。
-// 它封装了 Agent 列表查询、详情获取、删除、心跳上报、能力搜索等端点的处理逻辑，
-// 作为 API 层与 Registry 服务之间的桥梁。
-//
-// 字段说明：
-//   - registrySvc: Registry 注册中心服务实例，提供 Agent 和能力的增删改查功能。
 type RegistryHandler struct {
 	registrySvc *registry.Service
+	connMgr     *gateway.ConnectionManager
+	eventBus    *gateway.EventBus
 }
 
 // NewRegistryHandler 创建并返回一个新的 RegistryHandler 实例。
-//
-// 参数：
-//   - registrySvc: Registry 注册中心服务，处理器将通过它访问 Agent 和能力数据。
-//
-// 返回值：
-//   - *RegistryHandler: 初始化完成的注册中心处理器实例。
-func NewRegistryHandler(registrySvc *registry.Service) *RegistryHandler {
-	return &RegistryHandler{registrySvc: registrySvc}
+func NewRegistryHandler(registrySvc *registry.Service, connMgr *gateway.ConnectionManager, eventBus *gateway.EventBus) *RegistryHandler {
+	return &RegistryHandler{
+		registrySvc: registrySvc,
+		connMgr:     connMgr,
+		eventBus:    eventBus,
+	}
 }
 
 // GetAgent 处理获取单个 Agent 详情的请求（GET /api/v1/agents/:agent_id）。
@@ -188,4 +186,106 @@ func (h *RegistryHandler) SearchCapabilities(c *gin.Context) {
 	}
 
 	response.Paginated(c, caps, total, page, pageSize)
+}
+
+// registerAgentRequest 是 Webhook/Direct 模式 Agent 通过 REST API 注册的请求体。
+type registerAgentRequest struct {
+	AgentID      string              `json:"agent_id" binding:"required"`
+	DisplayName  string              `json:"display_name" binding:"required"`
+	Description  string              `json:"description"`
+	Version      string              `json:"version"`
+	EndpointURL  string              `json:"endpoint_url" binding:"required"`
+	Capabilities []registerCapDef    `json:"capabilities"`
+}
+
+type registerCapDef struct {
+	Name               string          `json:"name" binding:"required"`
+	DisplayName        string          `json:"display_name"`
+	Description        string          `json:"description"`
+	Category           string          `json:"category"`
+	Tags               []string        `json:"tags"`
+	InputSchema        json.RawMessage `json:"input_schema"`
+	OutputSchema       json.RawMessage `json:"output_schema"`
+	Visibility         string          `json:"visibility"`
+	ApprovalMode       string          `json:"approval_mode"`
+	EstimatedLatencyMs uint            `json:"estimated_latency_ms"`
+}
+
+// RegisterAgent 处理 Webhook/Direct 模式的 Agent 注册（POST /api/v1/agents/register）。
+//
+// 与 WebSocket Tunnel 模式不同，Webhook Agent 通过此 REST 端点注册，
+// 并提供 endpoint_url 供 Platform 主动回调。Agent 无需维持长连接。
+//
+// 响应：
+//   - 200: 注册成功，返回 agent_secret（仅首次注册返回，妥善保管）
+//   - 400: 请求参数不合法
+//   - 500: 注册失败
+func (h *RegistryHandler) RegisterAgent(c *gin.Context) {
+	var req registerAgentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	user := authz.GetCurrentUser(c)
+
+	// 为每个 capability 设置默认值
+	caps := make([]protocol.CapabilityDef, len(req.Capabilities))
+	for i, cap := range req.Capabilities {
+		visibility := cap.Visibility
+		if visibility == "" {
+			visibility = "public"
+		}
+		approvalMode := cap.ApprovalMode
+		if approvalMode == "" {
+			approvalMode = "auto"
+		}
+		caps[i] = protocol.CapabilityDef{
+			Name:               cap.Name,
+			DisplayName:        cap.DisplayName,
+			Description:        cap.Description,
+			Category:           cap.Category,
+			Tags:               cap.Tags,
+			InputSchema:        cap.InputSchema,
+			OutputSchema:       cap.OutputSchema,
+			Visibility:         visibility,
+			ApprovalMode:       approvalMode,
+			EstimatedLatencyMs: cap.EstimatedLatencyMs,
+		}
+	}
+
+	card := protocol.AgentCard{
+		AgentID:        req.AgentID,
+		DisplayName:    req.DisplayName,
+		Description:    req.Description,
+		Version:        req.Version,
+		ConnectionMode: "direct",
+		Capabilities:   caps,
+	}
+
+	agentSecret, err := h.registrySvc.RegisterAgent(card, user.ID, req.EndpointURL)
+	if err != nil {
+		response.InternalServerError(c, "registration failed: "+err.Error())
+		return
+	}
+
+	// 获取用于 HMAC 签名的 secret（重复注册时 agentSecret 为空，需从 DB 获取）
+	signingSecret := agentSecret
+	if signingSecret == "" {
+		signingSecret, _ = h.registrySvc.GetAgentSecret(req.AgentID)
+	}
+
+	// 创建 WebhookTransport 并注册到 ConnectionManager
+	transport := gateway.NewWebhookTransport(req.AgentID, req.EndpointURL, signingSecret)
+	h.connMgr.Register(req.AgentID, transport)
+
+	// 发布上线事件
+	h.eventBus.PublishJSON("agent_online", map[string]string{"agent_id": req.AgentID})
+
+	resp := gin.H{"agent_id": req.AgentID, "status": "registered"}
+	if agentSecret != "" {
+		resp["agent_secret"] = agentSecret
+	}
+
+	response.Success(c, resp)
 }
