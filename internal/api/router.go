@@ -76,8 +76,10 @@ func SetupRouter(deps Deps) *gin.Engine {
 		}
 
 		// WebSocket 隧道端点，Agent 通过此端点建立持久连接。
-		// 该端点使用 Agent 自身携带的 API Key 进行认证，不经过通用 AuthRequired 中间件。
 		v1.GET("/tunnel", deps.TunnelHandler.HandleTunnel)
+
+		// SSE 事件流端点，通过 query param 传递 token 认证。
+		v1.GET("/events", deps.EventsHandler.Stream)
 
 		// 需要认证的路由组，所有请求必须通过 AuthRequired 中间件校验 JWT 令牌
 		authenticated := v1.Group("")
@@ -111,9 +113,6 @@ func SetupRouter(deps Deps) *gin.Engine {
 			authenticated.GET("/tasks/:task_id", deps.TaskHandler.GetTask)
 			authenticated.POST("/tasks/:task_id/reply", deps.TaskHandler.Reply)
 			authenticated.POST("/tasks/:task_id/cancel", deps.TaskHandler.Cancel)
-
-			// 实时事件流路由（SSE）
-			authenticated.GET("/events", deps.EventsHandler.Stream)
 
 			// 当前用户信息路由
 			authenticated.GET("/auth/profile", deps.AuthHandler.Profile)

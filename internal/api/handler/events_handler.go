@@ -3,24 +3,34 @@ package handler
 import (
 	"io"
 
-	"github.com/gin-gonic/gin"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
 	"github.com/eyrihe999-stack/Skynet/internal/gateway"
+	"github.com/gin-gonic/gin"
 )
 
-// EventsHandler 处理 SSE 事件流端点。
-// 向已连接的客户端实时推送平台事件（Agent 上下线、调用完成等）。
 type EventsHandler struct {
 	eventBus *gateway.EventBus
+	authSvc  *authz.Service
 }
 
-// NewEventsHandler 创建并返回一个新的 EventsHandler 实例。
-func NewEventsHandler(eventBus *gateway.EventBus) *EventsHandler {
-	return &EventsHandler{eventBus: eventBus}
+func NewEventsHandler(eventBus *gateway.EventBus, authSvc *authz.Service) *EventsHandler {
+	return &EventsHandler{eventBus: eventBus, authSvc: authSvc}
 }
 
-// Stream 处理 SSE 事件流 GET /api/v1/events。
-// 客户端连接后将持续接收平台事件，直到客户端断开连接。
+// Stream 处理 SSE 事件流 GET /api/v1/events?token=xxx
+// SSE (EventSource) 不支持自定义 Header，通过 query param 传递 JWT token 认证。
 func (h *EventsHandler) Stream(c *gin.Context) {
+	// 认证：从 query param 获取 token
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(401, gin.H{"error": "token required"})
+		return
+	}
+	if _, err := h.authSvc.ValidateJWT(token); err != nil {
+		c.JSON(401, gin.H{"error": "invalid token"})
+		return
+	}
+
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")

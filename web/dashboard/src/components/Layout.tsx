@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   KeyOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import { clearToken } from '../api/client';
 
@@ -22,6 +23,7 @@ const menuItems = [
   { key: '/invocations', icon: <HistoryOutlined />, label: '调用历史' },
   { key: '/approvals', icon: <AuditOutlined />, label: '审批队列' },
   { key: '/api-keys', icon: <KeyOutlined />, label: 'API Key' },
+  { key: '/guide', icon: <RocketOutlined />, label: '快速开始' },
   { key: '/settings', icon: <SettingOutlined />, label: '设置' },
 ];
 

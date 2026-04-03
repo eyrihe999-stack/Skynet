@@ -10,6 +10,7 @@ import Invocations from './pages/Invocations';
 import Approvals from './pages/Approvals';
 import Settings from './pages/Settings';
 import ApiKeys from './pages/ApiKeys';
+import Guide from './pages/Guide';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" />;
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/invocations" element={<Invocations />} />
                 <Route path="/approvals" element={<Approvals />} />
                 <Route path="/api-keys" element={<ApiKeys />} />
+                <Route path="/guide" element={<Guide />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>

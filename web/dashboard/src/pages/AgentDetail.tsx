@@ -60,6 +60,35 @@ export default function AgentDetail() {
     }
   };
 
+  // 根据 input_schema 生成示例 JSON
+  const generateExample = (schema: any): any => {
+    if (!schema || !schema.properties) return {};
+    const example: Record<string, any> = {};
+    for (const [key, prop] of Object.entries(schema.properties) as any) {
+      switch (prop.type) {
+        case 'string':
+          if (prop.enum) example[key] = prop.enum[0];
+          else example[key] = prop.description || key;
+          break;
+        case 'integer': example[key] = 0; break;
+        case 'number': example[key] = 0.0; break;
+        case 'boolean': example[key] = false; break;
+        case 'array':
+          example[key] = prop.items?.type === 'string' ? ['示例'] : [];
+          break;
+        case 'object': example[key] = {}; break;
+        default: example[key] = null;
+      }
+    }
+    return example;
+  };
+
+  const fillExample = () => {
+    if (!selectedSkill?.input_schema) return;
+    const example = generateExample(selectedSkill.input_schema);
+    setInputJSON(JSON.stringify(example, null, 2));
+  };
+
   if (loading) return <div>加载中...</div>;
   if (!agent) return <div>Agent 不存在</div>;
 
@@ -72,7 +101,7 @@ export default function AgentDetail() {
     { title: '调用次数', dataIndex: 'call_count', key: 'call_count' },
     { title: '操作', key: 'action',
       render: (_: any, r: Capability) => (
-        <Button type="link" onClick={() => { setSelectedSkill(r); setResult(null); setInputJSON('{}'); }}>
+        <Button type="link" onClick={() => { setSelectedSkill(r); setResult(null); setInputJSON(JSON.stringify(generateExample(r.input_schema), null, 2)); }}>
           试用
         </Button>
       ),
@@ -95,11 +124,23 @@ export default function AgentDetail() {
 
       {selectedSkill && (
         <Card title={`试用: ${selectedSkill.display_name}`} style={{ marginTop: 16 }}>
-          {selectedSkill.input_schema && (
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-              Input Schema: {JSON.stringify(selectedSkill.input_schema)}
-            </Text>
+          {selectedSkill.input_schema?.properties && (
+            <div style={{ marginBottom: 12 }}>
+              <Text strong>参数说明：</Text>
+              <div style={{ marginTop: 4 }}>
+                {Object.entries(selectedSkill.input_schema.properties).map(([key, prop]: any) => (
+                  <Tag key={key} style={{ marginBottom: 4 }}>
+                    {key}{prop.type ? ` (${prop.type})` : ''}{selectedSkill.input_schema.required?.includes(key) ? ' *' : ''}
+                    {prop.description ? `: ${prop.description}` : ''}
+                  </Tag>
+                ))}
+              </div>
+            </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text type="secondary">输入参数 (JSON)</Text>
+            <Button type="link" size="small" onClick={fillExample} style={{ padding: 0 }}>填入示例</Button>
+          </div>
           <TextArea rows={4} value={inputJSON} onChange={e => setInputJSON(e.target.value)}
             placeholder="JSON 输入参数" style={{ marginBottom: 12, fontFamily: 'monospace' }} />
           <Space>

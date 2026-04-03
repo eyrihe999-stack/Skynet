@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Card, Statistic, Table, Tag, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Typography, message } from 'antd';
 import { RobotOutlined, AppstoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useEvents } from '../hooks/useEvents';
 import type { Agent } from '../types';
 
 const { Title } = Typography;
@@ -16,6 +17,14 @@ export default function Overview() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // SSE 实时刷新：Agent 上下线时自动重新加载数据
+  useEvents((event) => {
+    if (event.type === 'agent_online' || event.type === 'agent_offline') {
+      message.info(`Agent ${event.data.data?.agent_id || ''} ${event.type === 'agent_online' ? '已上线' : '已下线'}`);
+      loadData();
+    }
+  });
 
   const loadData = async () => {
     try {
