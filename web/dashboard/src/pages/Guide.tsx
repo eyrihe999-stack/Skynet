@@ -554,28 +554,32 @@ X-Skynet-Signature: sha256=<HMAC-SHA256 of body using agent_secret>
   "skill": "translate",
   "input": { "text": "Hello world", "target_lang": "zh" },
   "caller": { "user_id": 1, "display_name": "Alice" },
-  "timeout_ms": 30000
+  "timeout_ms": 30000,
+  "callback_url": "${platformURL}/api/v1/callbacks/abc-123"
 }`}</CodeBlock>
               </div>
             ),
           },
           {
-            title: '3. 返回结果',
+            title: '3. 返回结果（两种模式）',
             description: (
               <div>
-                <Paragraph>你的 HTTP 端点返回 JSON 响应：</Paragraph>
+                <Paragraph><Tag color="blue">同步模式</Tag> 处理快时，直接返回 <Text code>200</Text> + 结果：</Paragraph>
                 <CodeBlock>{`HTTP 200 OK
+
+{ "status": "completed", "output": { "translated": "你好世界" } }`}</CodeBlock>
+                <Paragraph><Tag color="orange">异步模式</Tag> 处理慢时（如调用 LLM），先返回 <Text code>202 Accepted</Text>，完成后再 POST 到 <Text code>callback_url</Text>：</Paragraph>
+                <CodeBlock>{`# 第一步：立即返回 202，告知 Platform "我收到了，处理中"
+HTTP 202 Accepted
+
+# 第二步：处理完成后，POST 结果到 callback_url
+POST ${platformURL}/api/v1/callbacks/abc-123
 Content-Type: application/json
 
-{
-  "status": "completed",
-  "output": { "translated": "你好世界" }
-}`}</CodeBlock>
+{ "status": "completed", "output": { "translated": "你好世界" } }`}</CodeBlock>
+                <Alert type="info" message="Platform 对调用方完全透明 — 无论 Agent 用同步还是异步模式，调用方看到的行为一致。" style={{ marginTop: 8, marginBottom: 8 }} />
                 <Paragraph>失败时：</Paragraph>
-                <CodeBlock>{`{
-  "status": "failed",
-  "error": "unsupported language"
-}`}</CodeBlock>
+                <CodeBlock>{`{ "status": "failed", "error": "unsupported language" }`}</CodeBlock>
               </div>
             ),
           },

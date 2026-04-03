@@ -33,6 +33,7 @@ type Deps struct {
 	PermissionHandler *handler.PermissionHandler
 	TaskHandler       *handler.TaskHandler
 	EventsHandler     *handler.EventsHandler
+	CallbackHandler   *handler.CallbackHandler
 }
 
 // SetupRouter 根据传入的依赖创建并配置 Gin 引擎及全部 API 路由。
@@ -77,6 +78,9 @@ func SetupRouter(deps Deps) *gin.Engine {
 
 		// WebSocket 隧道端点，Agent 通过此端点建立持久连接。
 		v1.GET("/tunnel", deps.TunnelHandler.HandleTunnel)
+
+		// Webhook Agent 异步回调端点（无需 JWT，通过 request_id 匹配）
+		v1.POST("/callbacks/:request_id", deps.CallbackHandler.Handle)
 
 		// SSE 事件流端点，通过 query param 传递 token 认证。
 		v1.GET("/events", deps.EventsHandler.Stream)

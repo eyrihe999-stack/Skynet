@@ -17,14 +17,16 @@ import (
 type RegistryHandler struct {
 	registrySvc *registry.Service
 	connMgr     *gateway.ConnectionManager
+	callbackMgr *gateway.CallbackManager
 	eventBus    *gateway.EventBus
 }
 
 // NewRegistryHandler 创建并返回一个新的 RegistryHandler 实例。
-func NewRegistryHandler(registrySvc *registry.Service, connMgr *gateway.ConnectionManager, eventBus *gateway.EventBus) *RegistryHandler {
+func NewRegistryHandler(registrySvc *registry.Service, connMgr *gateway.ConnectionManager, callbackMgr *gateway.CallbackManager, eventBus *gateway.EventBus) *RegistryHandler {
 	return &RegistryHandler{
 		registrySvc: registrySvc,
 		connMgr:     connMgr,
+		callbackMgr: callbackMgr,
 		eventBus:    eventBus,
 	}
 }
@@ -276,7 +278,7 @@ func (h *RegistryHandler) RegisterAgent(c *gin.Context) {
 	}
 
 	// 创建 WebhookTransport 并注册到 ConnectionManager
-	transport := gateway.NewWebhookTransport(req.AgentID, req.EndpointURL, signingSecret)
+	transport := gateway.NewWebhookTransport(req.AgentID, req.EndpointURL, signingSecret, h.callbackMgr)
 	h.connMgr.Register(req.AgentID, transport)
 
 	// 发布上线事件

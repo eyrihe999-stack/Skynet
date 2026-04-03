@@ -86,6 +86,7 @@ func main() {
 	authSvc := authz.NewService(db, cfg.JWT.Secret)
 	registrySvc := registry.NewService(agentRepo, capRepo, embeddingRepo, embeddingClient)
 	connMgr := gateway.NewConnectionManager()
+	callbackMgr := gateway.NewCallbackManager(cfg.Server.ExternalURL)
 	eventBus := gateway.NewEventBus()
 	rateLimiter := gateway.NewRateLimiter()
 	taskSessions := gateway.NewTaskSessionManager()
@@ -93,7 +94,7 @@ func main() {
 
 	// 6. Create handlers
 	authHandler := authz.NewHandler(authSvc)
-	registryHandler := handler.NewRegistryHandler(registrySvc, connMgr, eventBus)
+	registryHandler := handler.NewRegistryHandler(registrySvc, connMgr, callbackMgr, eventBus)
 	invokeHandler := handler.NewInvokeHandler(gatewaySvc)
 	tunnelHandler := handler.NewTunnelHandler(connMgr, registrySvc, authSvc, eventBus)
 	invocationHandler := handler.NewInvocationHandler(invRepo)
@@ -119,6 +120,7 @@ func main() {
 		PermissionHandler: permissionHandler,
 		TaskHandler:       taskHandler,
 		EventsHandler:     eventsHandler,
+		CallbackHandler:   handler.NewCallbackHandler(callbackMgr),
 	})
 
 	// 8. Start heartbeat monitor

@@ -59,8 +59,11 @@ type EmbeddingConfig struct {
 type ServerConfig struct {
 	// ListenAddr 是服务器的监听地址，格式为 "host:port" 或 ":port"。
 	// 默认值为 ":9090"，表示监听所有网卡的 9090 端口。
-	// yaml:"listen_addr" 对应 YAML 中的 server.listen_addr 字段。
 	ListenAddr string `yaml:"listen_addr"`
+
+	// ExternalURL 是 Platform 对外可达的 URL（如 "http://localhost:9090"）。
+	// Webhook 模式下用于生成回调地址，Agent 处理完成后将结果 POST 到此地址。
+	ExternalURL string `yaml:"external_url"`
 }
 
 // DatabaseConfig 包含 MySQL 数据库连接所需的全部配置项。
@@ -171,6 +174,12 @@ func LoadFrom(path string) *Config {
 	overrideFromEnv(&cfg.Embedding.BaseURL, "EMBEDDING_BASE_URL")
 	overrideFromEnv(&cfg.Embedding.APIKey, "EMBEDDING_API_KEY")
 	overrideFromEnv(&cfg.Embedding.Model, "EMBEDDING_MODEL")
+	overrideFromEnv(&cfg.Server.ExternalURL, "EXTERNAL_URL")
+
+	// 如果未配置 ExternalURL，基于 ListenAddr 推导
+	if cfg.Server.ExternalURL == "" {
+		cfg.Server.ExternalURL = "http://localhost" + cfg.Server.ListenAddr
+	}
 
 	return cfg
 }
