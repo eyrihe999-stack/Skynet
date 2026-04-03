@@ -44,6 +44,63 @@ export default function Guide() {
       </Card>
 
       <Card style={{ marginBottom: 24 }}>
+        <Title level={5}>同步 vs 异步 Skill</Title>
+        <Paragraph>
+          每个 Skill 可以声明自己是<Text strong>同步</Text>还是<Text strong>异步</Text>执行：
+        </Paragraph>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16, fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #f0f0f0', textAlign: 'left' }}>
+              <th style={{ padding: '8px 12px' }}></th>
+              <th style={{ padding: '8px 12px' }}>同步 Skill（默认）</th>
+              <th style={{ padding: '8px 12px' }}>异步 Skill（async: true）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 500 }}>调用行为</td>
+              <td style={{ padding: '8px 12px' }}>POST /invoke 阻塞等待，返回结果</td>
+              <td style={{ padding: '8px 12px' }}>POST /invoke 立即返回 task_id（HTTP 202）</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 500 }}>获取结果</td>
+              <td style={{ padding: '8px 12px' }}>直接在响应里</td>
+              <td style={{ padding: '8px 12px' }}>任务看板 / GET /tasks/:id / SSE 事件通知</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 500 }}>超时</td>
+              <td style={{ padding: '8px 12px' }}>默认 30 秒（可通过 progress 消息续命）</td>
+              <td style={{ padding: '8px 12px' }}>默认 10 分钟</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 500 }}>适用场景</td>
+              <td style={{ padding: '8px 12px' }}>快速响应、多轮对话（NeedInput）</td>
+              <td style={{ padding: '8px 12px' }}>LLM 推理、批量处理、视频转码等耗时操作</td>
+            </tr>
+          </tbody>
+        </table>
+        <Alert type="warning" message="异步 Skill 不支持多轮对话（NeedInput）" description={
+          <span>
+            如果你的 Skill 用了 <Text code>NeedInput</Text> / <Text code>need_input</Text> 进行多轮交互，
+            <Text strong>不要</Text>标记为 <Text code>async: true</Text>。异步模式下调用方已经拿到 task_id 离开了，
+            无法响应追问。需要多轮交互的 Skill 必须保持同步。
+          </span>
+        } style={{ marginBottom: 12 }} />
+        <Paragraph>
+          <Text strong>调用方判断逻辑：</Text>
+        </Paragraph>
+        <CodeBlock>{`resp = POST /api/v1/invoke
+
+if resp.status == 200:
+    # 同步完成，结果在 resp.data.output
+elif resp.status == 202:
+    # 异步任务已派发，去任务看板查看
+    task_id = resp.data.task_id
+    # 轮询: GET /api/v1/tasks/{task_id}
+    # 或监听 SSE invoke_status 事件`}</CodeBlock>
+      </Card>
+
+      <Card style={{ marginBottom: 24 }}>
         <Title level={5}>作为开发者 — 接入 Agent</Title>
         <Paragraph>
           Skynet 支持<Text strong>三种</Text>接入方式，选择最适合你的场景：
@@ -202,6 +259,39 @@ function GoSDKGuide({ platformURL, apiKey, hasApiKey }: { platformURL: string; a
               </div>
             ),
           },
+          {
+            title: '声明异步 Skill（可选）',
+            description: (
+              <div>
+                <Paragraph>对于耗时操作，设置 <Text code>Async: true</Text>，调用方会立即收到 task_id：</Paragraph>
+                <CodeBlock>{`var Analyze = framework.Skill{
+    Name:        "analyze",
+    DisplayName: "Deep Analysis",
+    Description: "Long-running analysis task",
+    Async:       true, // 调用方不会阻塞等待
+    Handler: func(ctx framework.Context, input framework.Input) (any, error) {
+        // 耗时操作...
+        return map[string]any{"result": "done"}, nil
+    },
+}`}</CodeBlock>
+                <Alert type="warning" message="使用了 NeedInput（多轮对话）的 Skill 不要标 Async" style={{ marginBottom: 8 }} />
+              </div>
+            ),
+          },
+          {
+            title: '长任务防超时：发送 progress（可选）',
+            description: (
+              <div>
+                <Paragraph>
+                  同步 Skill 默认 30 秒超时。如果处理时间可能超过超时阈值，
+                  Agent 可以周期性发送 <Text code>progress</Text> 消息，每次重置超时计时器：
+                </Paragraph>
+                <CodeBlock>{`// WebSocket 协议中发送 progress 消息
+{"type": "progress", "request_id": "abc-123", "payload": {"progress": 0.5, "message": "处理中..."}}`}</CodeBlock>
+                <Paragraph>Go SDK 中暂不需要手动发送 progress —— 设置为 <Text code>Async: true</Text> 后超时自动延长到 10 分钟。</Paragraph>
+              </div>
+            ),
+          },
         ]}
       />
     </div>
@@ -271,12 +361,14 @@ function WebSocketGuide({ wsURL, apiKey }: { wsURL: string; apiKey: string }) {
             "required": ["name"]
           },
           "visibility": "public",
-          "approval_mode": "auto"
+          "approval_mode": "auto",
+          "async": false
         }
       ]
     }
   }
 }`}</CodeBlock>
+                <Alert type="info" message={<span>设置 <Text code>"async": true</Text> 可声明异步 Skill，调用方会收到 202 + task_id 而非阻塞等待。注意：使用了 need_input（多轮对话）的 Skill 不要设为 async。</span>} style={{ marginBottom: 8 }} />
               </div>
             ),
           },
@@ -522,10 +614,12 @@ Authorization: Bearer <your-jwt-token>
         },
         "required": ["text", "target_lang"]
       },
-      "visibility": "public"
+      "visibility": "public",
+      "async": true
     }
   ]
 }`}</CodeBlock>
+                <Alert type="info" message={<span><Text code>"async": true</Text> 表示调用方不阻塞等待。省略或设为 false 则同步。使用 need_input（多轮对话）的 Skill 不要设为 async。</span>} style={{ marginBottom: 8 }} />
                 <Paragraph>响应：</Paragraph>
                 <CodeBlock>{`{
   "code": 0,
