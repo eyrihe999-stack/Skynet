@@ -60,6 +60,8 @@ type Deps struct {
 //   - GET  /api/v1/auth/profile            — 获取当前用户信息（需认证）
 func SetupRouter(deps Deps) *gin.Engine {
 	r := gin.Default()
+	// 信任 Nginx 代理头，使 c.ClientIP() 返回真实客户端 IP 而非代理地址
+	r.SetTrustedProxies([]string{"127.0.0.1", "::1", "172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"})
 
 	// 健康检查端点，用于负载均衡器或监控系统探测服务是否存活
 	r.GET("/health", func(c *gin.Context) {
