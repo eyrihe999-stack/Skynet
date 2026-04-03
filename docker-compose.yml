@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: skynet-mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: skynet
+    ports:
+      - "3307:3306"
+    volumes:
+      - skynet-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  platform:
+    image: localhost:5001/skynet:latest
+    build: .
+    container_name: skynet-platform
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ""
+      DB_NAME: skynet
+      JWT_SECRET: skynet-dev-secret
+      LOG_LEVEL: debug
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+    restart: unless-stopped
+
+  dashboard:
+    build: ./web/dashboard
+    container_name: skynet-dashboard
+    ports:
+      - "3001:80"
+    depends_on:
+      - platform
+
+volumes:
+  skynet-mysql-data:

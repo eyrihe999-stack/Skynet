@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS invocations;
+DROP TABLE IF EXISTS capabilities;
+DROP TABLE IF EXISTS agents;
+DROP TABLE IF EXISTS users;

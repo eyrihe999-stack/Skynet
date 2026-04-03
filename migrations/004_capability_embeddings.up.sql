@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS capability_embeddings (
+    capability_id   BIGINT UNSIGNED PRIMARY KEY,
+    embedding       MEDIUMBLOB NOT NULL,
+    model_version   VARCHAR(50) NOT NULL,
+    updated_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    FOREIGN KEY (capability_id) REFERENCES capabilities(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -1,0 +1,19 @@
+server:
+  listen_addr: ":8080"
+
+database:
+  host: "127.0.0.1"
+  port: "3307"
+  user: "skynet"
+  password: ""              # 生产环境建议通过环境变量 DB_PASSWORD 设置
+  db_name: "skynet"
+
+jwt:
+  secret: ""                # 生产环境必须通过环境变量 JWT_SECRET 设置
+
+log_level: "info"
+
+embedding:
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: ""       # 生产环境通过环境变量 EMBEDDING_API_KEY 设置
+  model: "text-embedding-v3"

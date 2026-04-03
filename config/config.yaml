@@ -1,0 +1,19 @@
+server:
+  listen_addr: ":9090"
+
+database:
+  host: "127.0.0.1"
+  port: "3307"
+  user: "root"
+  password: ""
+  db_name: "skynet"
+
+jwt:
+  secret: "change-me-in-production"
+
+log_level: "debug"
+
+embedding:
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: ""       # 通过环境变量 EMBEDDING_API_KEY 设置
+  model: "text-embedding-v3"

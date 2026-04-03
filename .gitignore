@@ -1,0 +1,32 @@
+# Binaries
+skynetd
+skynet
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test
+*.test
+*.out
+coverage.html
+
+# Env
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vendor (use go modules)
+vendor/
+
+# Build
+dist/

@@ -1,0 +1,6 @@
+.git
+.env
+*.md
+docs/
+web/dashboard/node_modules
+web/dashboard/dist
