@@ -105,15 +105,26 @@ func (ac *AgentConn) SendInvoke(payload protocol.InvokePayload, timeout time.Dur
 		return requestID, nil, fmt.Errorf("write invoke failed: %w", err)
 	}
 
-	// 阻塞等待三种结果之一：收到响应、超时、连接断开
-	select {
-	case resp := <-ch:
-		result, err := ac.parseInvokeResponse(resp)
-		return requestID, result, err
-	case <-time.After(timeout):
-		return requestID, nil, fmt.Errorf("invoke timed out after %s", timeout)
-	case <-ac.closeCh:
-		return requestID, nil, fmt.Errorf("agent disconnected")
+	// 阻塞等待：收到响应/超时/连接断开。
+	// Agent 发送 progress 消息可重置超时计时器，支持长时间运行的任务。
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case resp := <-ch:
+			if resp.Type == protocol.TypeProgress {
+				// Agent 还在处理中，重置超时
+				timer.Reset(timeout)
+				continue
+			}
+			result, err := ac.parseInvokeResponse(resp)
+			return requestID, result, err
+		case <-timer.C:
+			return requestID, nil, fmt.Errorf("invoke timed out after %s", timeout)
+		case <-ac.closeCh:
+			return requestID, nil, fmt.Errorf("agent disconnected")
+		}
 	}
 }
 
@@ -163,13 +174,22 @@ func (ac *AgentConn) SendReply(requestID string, payload protocol.ReplyPayload, 
 		return nil, fmt.Errorf("write reply failed: %w", err)
 	}
 
-	select {
-	case resp := <-ch:
-		return ac.parseInvokeResponse(resp)
-	case <-time.After(timeout):
-		return nil, fmt.Errorf("reply timed out after %s", timeout)
-	case <-ac.closeCh:
-		return nil, fmt.Errorf("agent disconnected")
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case resp := <-ch:
+			if resp.Type == protocol.TypeProgress {
+				timer.Reset(timeout)
+				continue
+			}
+			return ac.parseInvokeResponse(resp)
+		case <-timer.C:
+			return nil, fmt.Errorf("reply timed out after %s", timeout)
+		case <-ac.closeCh:
+			return nil, fmt.Errorf("agent disconnected")
+		}
 	}
 }
 
@@ -219,8 +239,8 @@ func (ac *AgentConn) readLoop() {
 		}
 
 		switch msg.Type {
-		case protocol.TypeResult, protocol.TypeNeedInput:
-			// 执行结果或追问消息：匹配 requestID 并发送到对应的等待通道
+		case protocol.TypeResult, protocol.TypeNeedInput, protocol.TypeProgress:
+			// 执行结果、追问或进度消息：匹配 requestID 并发送到对应的等待通道
 			ac.pendMu.Lock()
 			ch, ok := ac.pending[msg.RequestID]
 			ac.pendMu.Unlock()
