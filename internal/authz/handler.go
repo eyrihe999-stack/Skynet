@@ -2,7 +2,7 @@ package authz
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 // Handler 是认证模块的 HTTP 处理器，负责处理注册、登录和用户信息获取等 HTTP 请求。

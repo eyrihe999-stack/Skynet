@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/skynetplatform/skynet/pkg/protocol"
+	"github.com/eyrihe999-stack/Skynet/pkg/protocol"
 )
 
 // Context 是 Skill 执行时的上下文结构体，封装了标准 context.Context 和调用元数据。

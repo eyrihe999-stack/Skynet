@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/skynetplatform/skynet/internal/authz"
-	"github.com/skynetplatform/skynet/internal/gateway"
-	"github.com/skynetplatform/skynet/internal/registry"
-	"github.com/skynetplatform/skynet-sdk/logger"
-	"github.com/skynetplatform/skynet-sdk/protocol"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/gateway"
+	"github.com/eyrihe999-stack/Skynet/internal/registry"
+	"github.com/eyrihe999-stack/Skynet-sdk/logger"
+	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
 )
 
 // upgrader 是 WebSocket 协议升级器，用于将普通 HTTP 连接升级为 WebSocket 连接。

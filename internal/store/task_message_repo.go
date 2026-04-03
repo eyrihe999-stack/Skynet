@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/skynetplatform/skynet/internal/model"
+	"github.com/eyrihe999-stack/Skynet/internal/model"
 	"gorm.io/gorm"
 )
 

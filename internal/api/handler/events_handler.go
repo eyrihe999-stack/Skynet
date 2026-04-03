@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/gateway"
+	"github.com/eyrihe999-stack/Skynet/internal/gateway"
 )
 
 // EventsHandler 处理 SSE 事件流端点。

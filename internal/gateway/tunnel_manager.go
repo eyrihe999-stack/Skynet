@@ -3,7 +3,7 @@ package gateway
 import (
 	"sync"
 
-	"github.com/skynetplatform/skynet-sdk/logger"
+	"github.com/eyrihe999-stack/Skynet-sdk/logger"
 )
 
 // TunnelManager 是隧道连接管理器，维护所有在线 Agent 的 WebSocket 连接映射。

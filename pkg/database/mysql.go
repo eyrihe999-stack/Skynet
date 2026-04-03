@@ -6,8 +6,8 @@
 package database
 
 import (
-	"github.com/skynetplatform/skynet/internal/config"
-	"github.com/skynetplatform/skynet/pkg/logger"
+	"github.com/eyrihe999-stack/Skynet/internal/config"
+	"github.com/eyrihe999-stack/Skynet/pkg/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

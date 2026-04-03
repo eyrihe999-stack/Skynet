@@ -4,8 +4,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/store"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/internal/store"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 // InvocationHandler 是调用历史记录的 HTTP 处理器。

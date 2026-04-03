@@ -1,15 +1,15 @@
-module github.com/skynetplatform/skynet
+module github.com/eyrihe999-stack/Skynet
 
 go 1.25.6
 
 require (
+	github.com/eyrihe999-stack/Skynet-sdk v0.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/sirupsen/logrus v1.9.4
-	github.com/skynetplatform/skynet-sdk v0.0.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/crypto v0.49.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -53,5 +53,3 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
-
-replace github.com/skynetplatform/skynet-sdk => ../Skynet-sdk

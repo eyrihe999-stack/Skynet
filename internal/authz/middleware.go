@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/model"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/internal/model"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 // UserContextKey 是在 Gin 上下文中存储已认证用户信息的键名。

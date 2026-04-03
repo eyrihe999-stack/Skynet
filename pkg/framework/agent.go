@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/skynetplatform/skynet/pkg/logger"
+	"github.com/eyrihe999-stack/Skynet/pkg/logger"
 )
 
 // Agent 是 Skynet Agent 的核心入口结构体。

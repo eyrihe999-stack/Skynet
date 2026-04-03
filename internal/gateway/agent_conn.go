@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/skynetplatform/skynet-sdk/logger"
-	"github.com/skynetplatform/skynet-sdk/protocol"
+	"github.com/eyrihe999-stack/Skynet-sdk/logger"
+	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
 )
 
 // AgentConn 封装了与单个 Agent 之间的 WebSocket 连接。

@@ -11,7 +11,7 @@ import (
 	"math"
 	"net/http"
 
-	"github.com/skynetplatform/skynet/internal/config"
+	"github.com/eyrihe999-stack/Skynet/internal/config"
 )
 
 // EmbeddingClient 调用外部 Embedding API 生成文本向量。

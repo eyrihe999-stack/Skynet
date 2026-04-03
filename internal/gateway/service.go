@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/skynetplatform/skynet/internal/model"
-	"github.com/skynetplatform/skynet/internal/store"
-	"github.com/skynetplatform/skynet-sdk/logger"
-	"github.com/skynetplatform/skynet-sdk/protocol"
+	"github.com/eyrihe999-stack/Skynet/internal/model"
+	"github.com/eyrihe999-stack/Skynet/internal/store"
+	"github.com/eyrihe999-stack/Skynet-sdk/logger"
+	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
 )
 
 // ErrCallChainTooDeep 表示调用链深度超过最大限制。

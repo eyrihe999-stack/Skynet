@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/skynetplatform/skynet/internal/model"
+	"github.com/eyrihe999-stack/Skynet/internal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

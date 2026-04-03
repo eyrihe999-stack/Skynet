@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/authz"
-	"github.com/skynetplatform/skynet/internal/gateway"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/gateway"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 type TaskHandler struct {

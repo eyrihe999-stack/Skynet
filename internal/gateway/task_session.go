@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skynetplatform/skynet-sdk/protocol"
+	"github.com/eyrihe999-stack/Skynet-sdk/protocol"
 )
 
 // TaskSession 记录一个多轮对话任务的内存状态。

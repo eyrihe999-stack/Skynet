@@ -4,10 +4,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/authz"
-	"github.com/skynetplatform/skynet/internal/model"
-	"github.com/skynetplatform/skynet/internal/store"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/model"
+	"github.com/eyrihe999-stack/Skynet/internal/store"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 // createRuleRequest 是创建权限规则接口的请求体结构，用于绑定和校验 JSON 请求参数。

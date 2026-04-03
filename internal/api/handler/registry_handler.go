@@ -4,10 +4,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/authz"
-	"github.com/skynetplatform/skynet/internal/registry"
-	"github.com/skynetplatform/skynet/internal/store"
-	"github.com/skynetplatform/skynet/pkg/response"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/registry"
+	"github.com/eyrihe999-stack/Skynet/internal/store"
+	"github.com/eyrihe999-stack/Skynet/pkg/response"
 )
 
 // RegistryHandler 是 Agent 注册中心的 HTTP 处理器。

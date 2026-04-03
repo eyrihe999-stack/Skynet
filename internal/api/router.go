@@ -6,8 +6,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/skynetplatform/skynet/internal/api/handler"
-	"github.com/skynetplatform/skynet/internal/authz"
+	"github.com/eyrihe999-stack/Skynet/internal/api/handler"
+	"github.com/eyrihe999-stack/Skynet/internal/authz"
 )
 
 // Deps 是路由初始化所需的全部外部依赖集合。
